@@ -4,8 +4,6 @@ import Image from "next/image";
 import { Tabs } from "nextra/components";
 import { useState, useEffect } from "react";
 
-![](/al-icon-a-monochrome.png)
-
 export function Hero({
   title,
   subtitle,
@@ -23,7 +21,10 @@ backgroundColor: isHovered ? "#a52a2a" : "#8b0000",
 color: "white",
 textDecoration: "none",
 borderRadius: "8px",
-transition: "background-color 0.3s ease",
+transition: "all 0.3s ease", 
+border: "1px solid #333333",
+boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+transform: isHovered ? "translateY(-2px)" : "translateY(0)", 
 });
 
 return (
@@ -51,17 +52,6 @@ return (
   </div>
 </div>
 ); }
-
-<Hero
-  title="Lucid Evolution"
-  subtitle="An advanced off-chain framework for Cardano and an upgraded version of the legacy Lucid library"
-  ctaText="Get Started"
-  ctaLink="/install"
-  ctaText2="Documentation"
-  ctaLink2="/documentation/core-concepts/instantiate-evolution"
-/>
-
----
 
 export function AnimatedCode({ code }) {
   const [displayedCode, setDisplayedCode] = useState('');
@@ -116,6 +106,57 @@ return (
 );
 }
 
+export function FAQBox({ title, children }) {
+  return (
+    <details
+      open
+      className="last-of-type:mb-0 rounded-lg bg-neutral-50 dark:bg-neutral-800 p-2 mt-4"
+    >
+      <summary>
+        <strong className="text-lg">{title}</strong>
+      </summary>
+      <div className="nx-p-2">{children}</div>
+    </details>
+  );
+}
+
+<style jsx global>{`
+  .fade-in {
+    animation: fadeIn 0.85s ease-in;
+  }
+  .fade-in-delayed {
+    animation: fadeIn 1.1s ease-in 1s;
+    opacity: 0;
+    animation-fill-mode: forwards;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+`}</style>
+
+<div style={{ marginBottom: "6rem" }}></div>
+
+![](/lucid-evolution-red-icon.png)
+
+<div className="fade-in">
+  <Hero
+    title="Lucid Evolution"
+    subtitle="An advanced off-chain framework for Cardano and an upgraded version of the legacy Lucid library"
+    ctaText="Get Started"
+    ctaLink="/install"
+    ctaText2="Documentation"
+    ctaLink2="/documentation/core-concepts/instantiate-evolution"
+  />
+</div>
+
+<div style={{ marginBottom: "4rem" }}></div>
+
+<div className="fade-in-delayed" style={{ marginTop: "4rem" }}>
 <AnimatedCode code={
   `import { Lucid } from "@lucid-evolution/lucid";
 import { Blockfrost } from "@lucid-evolution/provider";
@@ -126,9 +167,15 @@ new Blockfrost("https://cardano-testnet.blockfrost.io/api/v0", "YOUR_PROJECT_ID"
 );
 `} />
 
----
+</div>
+
+<div style={{ marginBottom: "4rem" }}></div>
 
 # Why Evolution?
+
+---
+
+<div style={{ marginBottom: "2.5rem" }}></div>
 
 <Tabs
   items={[
@@ -147,7 +194,7 @@ new Blockfrost("https://cardano-testnet.blockfrost.io/api/v0", "YOUR_PROJECT_ID"
   <Tabs.Tab>
     Error management just got better and a lot smoother with our integration of
     the Effect library. Debug quicker with detailed, context-rich error
-    messages. Handle exceptions easily with our structured error types.
+    messages. Handle exceptions easily with our structured error types
   </Tabs.Tab>
   <Tabs.Tab>
     Lucid Evolution uses a modular code architecture. The codebase separates
@@ -156,20 +203,23 @@ new Blockfrost("https://cardano-testnet.blockfrost.io/api/v0", "YOUR_PROJECT_ID"
     new features as separate modules within the existing architecture
   </Tabs.Tab>
   <Tabs.Tab>
-    Keeping up with the latest version of the Cardano Multi-platform Library
-    (CML)
+    Keeping up with the latest version of the [Cardano Multi-platform Library (CML)]("https://dcspark.github.io/cardano-multiplatform-lib/")
+
   </Tabs.Tab>
   <Tabs.Tab>
     Documentation for Lucid Evolution includes code examples for various use
     cases. The project maintains a public GitHub repository for issue tracking
     and discussions. Regular updates are published to address bugs and add
-    features and support is provided through GitHub issues and our dedicated
-    Discord channel.
+    features. We mostly provide support through GitHub issues and our dedicated
+    [Discord channel]("https://discord.gg/s89P9gpEff")
   </Tabs.Tab>
 </Tabs>
----
+
+<div style={{ marginBottom: "6rem" }}></div>
 
 ## Quickstart
+
+---
 
 <Steps>
 ### Set up your project
@@ -224,23 +274,13 @@ Initialize a new TypeScript project
 </Steps>
 </Steps>
 
----
+<div style={{ marginBottom: "4rem" }}></div>
 
 # F.A.Q.
 
-export function FAQBox({ title, children }) {
-  return (
-    <details
-      open
-      className="last-of-type:mb-0 rounded-lg bg-neutral-50 dark:bg-neutral-800 p-2 mt-4"
-    >
-      <summary>
-        <strong className="text-lg">{title}</strong>
-      </summary>
-      <div className="nx-p-2">{children}</div>
-    </details>
-  );
-}
+---
+
+<div style={{ marginBottom: "3rem" }}></div>
 
 <FAQBox title="What is Lucid Evolution?">
   Lucid Evolution is an off-chain framework library for Cardano, designed to
