@@ -56,34 +56,65 @@ return (
 export function AnimatedCode({ code }) {
   const [displayedCode, setDisplayedCode] = useState('');
   const [showCursor, setShowCursor] = useState(true);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const getRandomTypingDelay = () => Math.random() * 50 + 20; // 20-70ms delay
+  const getRandomTypingDelay = () => Math.random() * 50 + 20;
 
   const lineCount = code.split('\n').length;
-  const lineHeight = 1.35; // em
-  const maxHeight = `${lineCount * lineHeight}em`;
+  const lineHeight = 1.5; // em
+  const codeHeight = `${lineCount * lineHeight}em`;
+  const terminalHeight = '100px';
+  const headerHeight = '40px';
+  const componentHeight = `calc(${codeHeight} + ${terminalHeight} + ${headerHeight} - 2em)`;
+
+  // Split the code into fast-forward and normal typing sections
+  const fastForwardIndex = code.indexOf('const txHash');
+  const fastForwardSection = code.slice(0, fastForwardIndex);
+  const normalTypingSection = code.slice(fastForwardIndex);
 
   useEffect(() => {
     let isMounted = true;
 
     const animateCode = async () => {
+      // Fast-forward section (typing quickly)
       let currentCode = '';
-      for (let i = 0; i < code.length; i++) {
+      for (let i = 0; i < fastForwardSection.length; i++) {
         if (!isMounted) break;
-        currentCode += code[i];
+        currentCode += fastForwardSection[i];
         setDisplayedCode(currentCode);
-        if (code[i] === '\n') {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Pause for 500ms at line breaks
+        await new Promise(resolve => setTimeout(resolve, 5)); // Very short delay for fast typing
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 500)); // Short pause after fast-forward
+
+      // Normal typing section
+      for (let i = 0; i < normalTypingSection.length; i++) {
+        if (!isMounted) break;
+        currentCode += normalTypingSection[i];
+        setDisplayedCode(currentCode);
+        if (normalTypingSection[i] === '\n') {
+          await new Promise(resolve => setTimeout(resolve, 500));
         } else {
           await new Promise(resolve => setTimeout(resolve, getRandomTypingDelay()));
         }
       }
 
-      // Reset after a pause
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      if (isMounted) setDisplayedCode('');
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Restart the animation
+      setIsSubmitting(true);
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      setIsSubmitting(false);
+      setShowConfirmation(true);
+
+      await new Promise(resolve => setTimeout(resolve, 7000));
+      if (isMounted) {
+        setDisplayedCode('');
+        setShowConfirmation(false);
+        setIsSubmitting(false);
+      }
+
       setTimeout(() => {
         if (isMounted) animateCode();
       }, 1000);
@@ -91,7 +122,6 @@ export function AnimatedCode({ code }) {
 
     animateCode();
 
-    // Blinking cursor effect
     const cursorInterval = setInterval(() => {
       if (isMounted) setShowCursor(prev => !prev);
     }, 530);
@@ -100,81 +130,165 @@ export function AnimatedCode({ code }) {
       isMounted = false;
       clearInterval(cursorInterval);
     };
-  }, [code]);
+  }, [code, fastForwardSection, normalTypingSection]);
 
-  const highlightCode = (code) => {
-    const redKeywords = ['import', 'from', 'const', 'await', 'new'];
-    const highlightedKeywords = ['Lucid','pay.ToAddress', 'sign.withWallet','selectWallet.fromPrivateKey'];
+  const redKeywords = ['import', 'from', 'const', 'await', 'new',`console`];
+  const highlightedKeywords = ['Lucid','pay.ToAddress', 'sign.withWallet','selectWallet.fromPrivateKey'];
 
-    const allKeywords = [...redKeywords, ...highlightedKeywords];
-    const keywordRegex = new RegExp(`\\b(${allKeywords.join('|')})\\b`, 'g');
+  const allKeywords = [...redKeywords, ...highlightedKeywords];
+  const keywordRegex = new RegExp(`\\b(${allKeywords.join('|')})\\b`, 'g');
 
-    return code.split('\n').map((line, lineIndex) => (
-      <div key={lineIndex}>
-        {line.split(keywordRegex).map((part, partIndex) => {
-          if (redKeywords.includes(part)) {
-            return <span key={partIndex} style={{ color: "#8b0000" }}>{part}</span>;
-          } else if (highlightedKeywords.includes(part)) {
-            return <span key={partIndex} style={{
-              color: "#87CEEB",
-              textShadow: "0 0 2px rgba(230, 230, 0, 0.1)"
-            }}>{part}</span>;
-          } else {
-            return part;
-          }
-        })}
-        {lineIndex === code.split('\n').length - 1 && <Cursor show={showCursor} />}
-      </div>
-    ));
-  };
+const LoadingSpinner = () => (
+  <div style={{ display: 'inline-block', marginLeft: '10px' }}>
+    <style jsx>{`
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `}</style>
+    <div style={{
+      border: '2px solid transparent',
+      borderTop: '2px solid #4ec9b0',
+      borderRadius: '50%',
+      width: '16px',
+      height: '16px',
+      animation: 'spin 2s linear infinite', // Increased duration for smoother animation
+    }}></div>
+  </div>
+);
 
-  const Cursor = ({ show }) => (
-    <span style={{
-      borderLeft: show ? '2px solid #fff' : 'none',
-      marginLeft: '2px',
-      animation: 'blink 0.7s infinite',
-    }}>&nbsp;</span>
+  const SuccessIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px' }}>
+      <circle cx="8" cy="8" r="7" stroke="#4ec9b0" strokeWidth="2"/>
+      <path d="M5 8L7 10L11 6" stroke="#4ec9b0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
-
-  const displayedLines = displayedCode.split('\n').length;
-  const currentHeight = `${(displayedLines + (displayedCode.endsWith('\n') ? 0 : 1)) * lineHeight}em`;
 
   return (
     <div style={{
       position: 'relative',
-      height: maxHeight,
+      height: componentHeight,
       overflow: 'hidden',
       borderRadius: '8px',
+      fontFamily: 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace',
+      boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
     }}>
-      <pre
-        style={{
-          backgroundColor: "transparent",
-          padding: "1rem",
-          height: maxHeight,
-          maxHeight: maxHeight,
-          overflow: "hidden",
-          whiteSpace: "pre-wrap",
-          wordWrap: "break-word",
-          position: 'relative',
-          zIndex: 2,
-          margin: 0,
-        }}
-      >
-        <code>{highlightCode(displayedCode)}</code>
-      </pre>
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: currentHeight,
-          backgroundColor: "#1a1515",
-          transition: "height 0.1s linear",
-          zIndex: 1,
-          borderRadius: '8px',
-        }}
-      />
+      {/* IDE-like header */}
+      <div style={{
+        backgroundColor: '#2d2d2d',
+        padding: '8px 16px',
+        height: headerHeight,
+        borderTopLeftRadius: '8px',
+        borderTopRightRadius: '8px',
+        display: 'flex',
+        alignItems: 'center',
+      }}>
+        <div style={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          backgroundColor: '#ff5f56',
+          marginRight: '6px',
+        }}></div>
+        <div style={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          backgroundColor: '#ffbd2e',
+          marginRight: '6px',
+        }}></div>
+        <div style={{
+          width: '12px',
+          height: '12px',
+          borderRadius: '50%',
+          backgroundColor: '#27c93f',
+          marginRight: '12px',
+        }}></div>
+        <span style={{ color: '#fff', fontSize: '14px' }}>make_payment.ts</span>
+      </div>
+
+      {/* Code content */}
+      <div style={{
+        position: 'relative',
+        backgroundColor: '#1e1e1e',
+        height: `calc(100% - ${headerHeight})`,
+      }}>
+        <pre
+          style={{
+            backgroundColor: "transparent",
+            height: codeHeight,
+            overflow: "hidden",
+            margin: 0,
+            padding: '16px',
+          }}
+        >
+          <code style={{
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+            overflowWrap: "break-word",
+            display: "block",
+            lineHeight: `${lineHeight}em`,
+          }}>
+            {displayedCode.split('\n').map((line, lineIndex) => (
+              <div key={lineIndex} style={{ display: 'flex', flexWrap: 'wrap' }}>
+                {line.split(keywordRegex).map((part, partIndex) => {
+                  let style = {};
+                  if (redKeywords.includes(part)) {
+                    style.color = "#ff6b6b";
+                  } else if (highlightedKeywords.includes(part)) {
+                    style.color = "#87CEEB";
+                  }
+                  return <span key={partIndex} style={style}>{part}</span>;
+                })}
+                {lineIndex === displayedCode.split('\n').length - 1 && 
+                  <span style={{
+                    borderLeft: showCursor ? '2px solid #fff' : 'none',
+                    marginLeft: '2px',
+                    animation: 'blink 0.7s infinite',
+                  }}>&nbsp;</span>
+                }
+              </div>
+            ))}
+          </code>
+        </pre>
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '12px 16px',
+            backgroundColor: '#2d2d2d',
+            borderBottomLeftRadius: '8px',
+            borderBottomRightRadius: '8px',
+            fontFamily: 'Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace',
+            fontSize: '14px',
+            height: terminalHeight,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+          }}
+        >
+          <div style={{ color: '#b3b3b3', marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
+            <span style={{ color: '#4ec9b0', marginRight: '8px' }}>❯</span>
+            <span style={{ color: '#569cd6' }}>run</span>
+            <span style={{ marginLeft: '8px' }}>make_payment.ts</span>
+            {isSubmitting && <LoadingSpinner />}
+          </div>
+          {showConfirmation && (
+            <>
+              <div style={{ color: '#4ec9b0', fontWeight: 'bold', marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
+                <SuccessIcon />
+                Transaction submitted successfully
+              </div>
+              <div style={{ color: '#b3b3b3' }}>
+                Hash - Submitted Tx: <span style={{ color: '#ce9178' }}>[transaction_hash_placeholder]</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -229,7 +343,7 @@ export function FAQBox({ title, children }) {
 
 <div style={{ marginBottom: "4rem" }}></div>
 
-<div className="fade-in-delayed" style={{ marginTop: "4rem" }}>
+<div style={{ marginTop: "4rem" }}>
 <AnimatedCode code={
   `import { Lucid } from "@lucid-evolution/lucid";
 import { Blockfrost } from '@lucid-evolution/provider';
@@ -249,7 +363,9 @@ const tx = await lucid
  
 const signedTx = await tx.sign.withWallet().complete();
 const txHash = await signedTx.submit();
-`} />
+console.log("Hash - Submitted Tx:", txHash);`
+} 
+ />
 
 </div>
 
