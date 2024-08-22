@@ -21,10 +21,10 @@ backgroundColor: isHovered ? "#a52a2a" : "#8b0000",
 color: "white",
 textDecoration: "none",
 borderRadius: "8px",
-transition: "all 0.3s ease", 
+transition: "all 0.3s ease",
 border: "1px solid #333333",
 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
-transform: isHovered ? "translateY(-2px)" : "translateY(0)", 
+transform: isHovered ? "translateY(-2px)" : "translateY(0)",
 });
 
 return (
@@ -66,13 +66,12 @@ i++;
         if (i > code.length) {
           clearInterval(intervalId);
 
-
           setTimeout(() => {
             i = 0;
             animateCode();
           }, 6000); // 6-second pause
         }
-      }, 60); // 60ms per character
+      }, 30); // 30ms per character
 
       return () => clearInterval(intervalId);
     };
@@ -84,14 +83,40 @@ i++;
 }, [code]);
 
 const lineCount = code.split('\n').length;
+const preHeight = `${lineCount * 1.35}em`;
 
-const preHeight = `${lineCount * 1.5}em`;
+const highlightCode = (code) => {
+const redKeywords = ['import', 'from', 'const', 'await', 'new'];
+const highlightedKeywords = ['Lucid','pay.ToAddress', 'sign.withWallet','selectWallet.fromPrivateKey']; // Endpoints that are changed with Evolution
+
+    const allKeywords = [...redKeywords, ...highlightedKeywords];
+    const keywordRegex = new RegExp(`\\b(${allKeywords.join('|')})\\b`, 'g');
+
+    return code.split('\n').map((line, lineIndex) => (
+      <span key={lineIndex}>
+        {line.split(keywordRegex).map((part, partIndex) => {
+          if (redKeywords.includes(part)) {
+            return <span key={partIndex} style={{ color: "#8b0000" }}>{part}</span>;
+          } else if (highlightedKeywords.includes(part)) {
+            return <span key={partIndex} style={{
+              color: "#87CEEB", // #4F9D9D also is a good color
+              textShadow: "0 0 2px rgba(230, 230, 0, 0.1)"
+            }}>{part}</span>;
+          } else {
+            return part;
+          }
+        })}
+        {'\n'}
+      </span>
+    ));
+
+};
 
 return (
 
 <pre
   style={{
-    backgroundColor: "#1a1515", // 420D08 is also nice
+    backgroundColor: "#1a1515",
     padding: "1rem",
     borderRadius: "8px",
     height: preHeight,
@@ -100,7 +125,7 @@ return (
     wordWrap: "break-word",
   }}
 >
-  <code>{displayedCode}</code>
+  <code>{highlightCode(displayedCode)}</code>
 </pre>
 
 );
@@ -154,17 +179,28 @@ export function FAQBox({ title, children }) {
   />
 </div>
 
-<div style={{ marginBottom: "4rem" }}></div>
+<div style={{ marginBottom: "6rem" }}></div>
 
 <div className="fade-in-delayed" style={{ marginTop: "4rem" }}>
 <AnimatedCode code={
   `import { Lucid } from "@lucid-evolution/lucid";
-import { Blockfrost } from "@lucid-evolution/provider";
-
+import { Blockfrost } from '@lucid-evolution/provider';
+ 
 const lucid = await Lucid(
-new Blockfrost("https://cardano-testnet.blockfrost.io/api/v0", "YOUR_PROJECT_ID"),
-"Testnet"
+  new Blockfrost("https://cardano-preprod.blockfrost.io/api/v0", "<projectId>"),
+  "Preprod"
 );
+ 
+lucid.selectWallet.fromPrivateKey(privateKey);
+ 
+const tx = await lucid
+  .newTx()
+  .pay.ToAddress("addr_testa...", { lovelace: 5000000n })
+  .pay.ToAddress("addr_testb...", { lovelace: 5000000n })
+  .complete();
+ 
+const signedTx = await tx.sign.withWallet().complete();
+const txHash = await signedTx.submit();
 `} />
 
 </div>
@@ -217,7 +253,7 @@ new Blockfrost("https://cardano-testnet.blockfrost.io/api/v0", "YOUR_PROJECT_ID"
 
 <div style={{ marginBottom: "6rem" }}></div>
 
-## Quickstart
+# Quickstart
 
 ---
 
@@ -274,7 +310,7 @@ Initialize a new TypeScript project
 </Steps>
 </Steps>
 
-<div style={{ marginBottom: "4rem" }}></div>
+<div style={{ marginBottom: "6rem" }}></div>
 
 # F.A.Q.
 
