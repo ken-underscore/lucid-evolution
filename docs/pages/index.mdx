@@ -58,6 +58,9 @@ export function AnimatedCode({ code }) {
   const [showCursor, setShowCursor] = useState(true);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGlowing, setIsGlowing] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [spinnerAngle, setSpinnerAngle] = useState(0);
 
   const getRandomTypingDelay = () => Math.random() * 50 + 20;
 
@@ -68,7 +71,6 @@ export function AnimatedCode({ code }) {
   const headerHeight = '40px';
   const componentHeight = `calc(${codeHeight} + ${terminalHeight} + ${headerHeight} - 2em)`;
 
-  // Split the code into fast-forward and normal typing sections
   const fastForwardIndex = code.indexOf('const txHash');
   const fastForwardSection = code.slice(0, fastForwardIndex);
   const normalTypingSection = code.slice(fastForwardIndex);
@@ -77,18 +79,16 @@ export function AnimatedCode({ code }) {
     let isMounted = true;
 
     const animateCode = async () => {
-      // Fast-forward section (typing quickly)
       let currentCode = '';
       for (let i = 0; i < fastForwardSection.length; i++) {
         if (!isMounted) break;
         currentCode += fastForwardSection[i];
         setDisplayedCode(currentCode);
-        await new Promise(resolve => setTimeout(resolve, 5)); // Very short delay for fast typing
+        await new Promise(resolve => setTimeout(resolve, 5));
       }
 
-      await new Promise(resolve => setTimeout(resolve, 500)); // Short pause after fast-forward
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Normal typing section
       for (let i = 0; i < normalTypingSection.length; i++) {
         if (!isMounted) break;
         currentCode += normalTypingSection[i];
@@ -103,16 +103,32 @@ export function AnimatedCode({ code }) {
       await new Promise(resolve => setTimeout(resolve, 500));
 
       setIsSubmitting(true);
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      setIsGlowing(true);
 
-      setIsSubmitting(false);
-      setShowConfirmation(true);
+      // Progress bar and submission animation
+      const startTime = Date.now();
+      const duration = 2250; // 2.25 seconds
+      const animateProgress = () => {
+        const elapsedTime = Date.now() - startTime;
+        const newProgress = Math.min((elapsedTime / duration) * 100, 100);
+        setProgress(newProgress);
+        if (newProgress < 100 && isMounted) {
+          requestAnimationFrame(animateProgress);
+        } else {
+          setIsSubmitting(false);
+          setIsGlowing(false);
+          setShowConfirmation(true);
+        }
+      };
+      animateProgress();
 
-      await new Promise(resolve => setTimeout(resolve, 7000));
+      await new Promise(resolve => setTimeout(resolve, duration));
+
+      await new Promise(resolve => setTimeout(resolve, 4750)); // Remaining time to total 7 seconds
       if (isMounted) {
         setDisplayedCode('');
         setShowConfirmation(false);
-        setIsSubmitting(false);
+        setProgress(0);
       }
 
       setTimeout(() => {
@@ -132,30 +148,42 @@ export function AnimatedCode({ code }) {
     };
   }, [code, fastForwardSection, normalTypingSection]);
 
-  const redKeywords = ['import', 'from', 'const', 'await', 'new',`console`];
-  const highlightedKeywords = ['Lucid','pay.ToAddress', 'sign.withWallet','selectWallet.fromPrivateKey'];
+  useEffect(() => {
+    let animationFrameId;
+    const animateSpinner = () => {
+      setSpinnerAngle((prevAngle) => (prevAngle + 10) % 360);
+      animationFrameId = requestAnimationFrame(animateSpinner);
+    };
+
+    if (isSubmitting) {
+      animateSpinner();
+    }
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isSubmitting]);
+
+  const redKeywords = ['import', 'from', 'const', 'await', 'new', 'console'];
+  const highlightedKeywords = ['Lucid', 'pay.ToAddress', 'sign.withWallet', 'selectWallet.fromPrivateKey'];
 
   const allKeywords = [...redKeywords, ...highlightedKeywords];
   const keywordRegex = new RegExp(`\\b(${allKeywords.join('|')})\\b`, 'g');
 
-const LoadingSpinner = () => (
-  <div style={{ display: 'inline-block', marginLeft: '10px' }}>
-    <style jsx>{`
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `}</style>
-    <div style={{
-      border: '2px solid transparent',
-      borderTop: '2px solid #4ec9b0',
-      borderRadius: '50%',
-      width: '16px',
-      height: '16px',
-      animation: 'spin 2s linear infinite', // Increased duration for smoother animation
-    }}></div>
-  </div>
-);
+  const LoadingSpinner = () => (
+    <div style={{ display: 'inline-block', marginLeft: '10px' }}>
+      <div style={{
+        width: '16px',
+        height: '16px',
+        border: '2px solid #2d2d2d',
+        borderTop: '2px solid #4ec9b0',
+        borderRadius: '50%',
+        transform: `rotate(${spinnerAngle}deg)`,
+      }}></div>
+    </div>
+  );
 
   const SuccessIcon = () => (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginRight: '8px' }}>
@@ -272,22 +300,53 @@ const LoadingSpinner = () => (
         >
           <div style={{ color: '#b3b3b3', marginBottom: '8px', display: 'flex', alignItems: 'center' }}>
             <span style={{ color: '#4ec9b0', marginRight: '8px' }}>❯</span>
-            <span style={{ color: '#569cd6' }}>run</span>
-            <span style={{ marginLeft: '8px' }}>make_payment.ts</span>
+            <span
+              style={{
+                color: '#569cd6',
+                transition: 'text-shadow 0.3s ease-in-out',
+                textShadow: isGlowing ? '0 0 5px rgba(86, 156, 214, 0.5)' : 'none',
+              }}
+            >
+              run
+            </span>
+            <span
+              style={{
+                marginLeft: '8px',
+                transition: 'text-shadow 0.3s ease-in-out',
+                textShadow: isGlowing ? '0 0 5px rgba(255, 255, 255, 0.5)' : 'none',
+              }}
+            >
+              make_payment.ts
+            </span>
             {isSubmitting && <LoadingSpinner />}
           </div>
           {showConfirmation && (
             <>
+              <div style={{ color: '#b3b3b3' }}>
+                Hash - Submitted Tx: <span style={{ color: '#ce9178' }}>[transaction_hash_placeholder]</span>
+              </div> 
               <div style={{ color: '#4ec9b0', fontWeight: 'bold', marginBottom: '4px', display: 'flex', alignItems: 'center' }}>
                 <SuccessIcon />
                 Transaction submitted successfully
               </div>
-              <div style={{ color: '#b3b3b3' }}>
-                Hash - Submitted Tx: <span style={{ color: '#ce9178' }}>[transaction_hash_placeholder]</span>
-              </div>
             </>
           )}
         </div>
+
+        {/* Progress bar */}
+        {isSubmitting && (
+          <div 
+            style={{
+              position: 'absolute',
+              bottom: terminalHeight,
+              left: '0',
+              height: '2px',
+              background: '#4ec9b0',
+              width: `${progress}%`,
+              transition: 'width 0.1s linear',
+            }}
+          />
+        )}
       </div>
     </div>
   );
@@ -368,6 +427,7 @@ console.log("Hash - Submitted Tx:", txHash);`
  />
 
 </div>
+
 
 <div style={{ marginBottom: "4rem" }}></div>
 
