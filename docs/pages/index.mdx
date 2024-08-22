@@ -71,7 +71,7 @@ export function AnimatedCode({ code }) {
   const headerHeight = '40px';
   const componentHeight = `calc(${codeHeight} + ${terminalHeight} + ${headerHeight} - 2em)`;
 
-  const fastForwardIndex = code.indexOf('const txHash');
+  const fastForwardIndex = code.indexOf('txHash');
   const fastForwardSection = code.slice(0, fastForwardIndex);
   const normalTypingSection = code.slice(fastForwardIndex);
 
@@ -107,7 +107,7 @@ export function AnimatedCode({ code }) {
 
       // Progress bar and submission animation
       const startTime = Date.now();
-      const duration = 2250; // 2.25 seconds
+      const duration = 2000; // 2 seconds progress bar addition syncing with SubmissionTx
       const animateProgress = () => {
         const elapsedTime = Date.now() - startTime;
         const newProgress = Math.min((elapsedTime / duration) * 100, 100);
