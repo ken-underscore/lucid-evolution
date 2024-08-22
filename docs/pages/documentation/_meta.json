@@ -23,5 +23,10 @@
     "type": "separator"
   },
 
-  "examples": "Examples"
+  "examples":{
+    "title": "Examples",
+    "theme": {
+      "breadcrumb": false
+    }
+  }
 }
