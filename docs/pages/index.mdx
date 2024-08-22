@@ -55,80 +55,128 @@ return (
 
 export function AnimatedCode({ code }) {
   const [displayedCode, setDisplayedCode] = useState('');
+  const [showCursor, setShowCursor] = useState(true);
 
-useEffect(() => {
-let i = 0;
-const animateCode = () => {
-const intervalId = setInterval(() => {
-setDisplayedCode(code.slice(0, i));
-i++;
+  const getRandomTypingDelay = () => Math.random() * 50 + 20; // 20-70ms delay
 
-        if (i > code.length) {
-          clearInterval(intervalId);
+  const lineCount = code.split('\n').length;
+  const lineHeight = 1.35; // em
+  const maxHeight = `${lineCount * lineHeight}em`;
 
-          setTimeout(() => {
-            i = 0;
-            animateCode();
-          }, 6000); // 6-second pause
+  useEffect(() => {
+    let isMounted = true;
+
+    const animateCode = async () => {
+      let currentCode = '';
+      for (let i = 0; i < code.length; i++) {
+        if (!isMounted) break;
+        currentCode += code[i];
+        setDisplayedCode(currentCode);
+        if (code[i] === '\n') {
+          await new Promise(resolve => setTimeout(resolve, 500)); // Pause for 500ms at line breaks
+        } else {
+          await new Promise(resolve => setTimeout(resolve, getRandomTypingDelay()));
         }
-      }, 30); // 30ms per character
+      }
 
-      return () => clearInterval(intervalId);
+      // Reset after a pause
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      if (isMounted) setDisplayedCode('');
+
+      // Restart the animation
+      setTimeout(() => {
+        if (isMounted) animateCode();
+      }, 1000);
     };
 
     animateCode();
 
-    return () => clearInterval();
+    // Blinking cursor effect
+    const cursorInterval = setInterval(() => {
+      if (isMounted) setShowCursor(prev => !prev);
+    }, 530);
 
-}, [code]);
+    return () => {
+      isMounted = false;
+      clearInterval(cursorInterval);
+    };
+  }, [code]);
 
-const lineCount = code.split('\n').length;
-const preHeight = `${lineCount * 1.35}em`;
-
-const highlightCode = (code) => {
-const redKeywords = ['import', 'from', 'const', 'await', 'new'];
-const highlightedKeywords = ['Lucid','pay.ToAddress', 'sign.withWallet','selectWallet.fromPrivateKey']; // Endpoints that are changed with Evolution
+  const highlightCode = (code) => {
+    const redKeywords = ['import', 'from', 'const', 'await', 'new'];
+    const highlightedKeywords = ['Lucid','pay.ToAddress', 'sign.withWallet','selectWallet.fromPrivateKey'];
 
     const allKeywords = [...redKeywords, ...highlightedKeywords];
     const keywordRegex = new RegExp(`\\b(${allKeywords.join('|')})\\b`, 'g');
 
     return code.split('\n').map((line, lineIndex) => (
-      <span key={lineIndex}>
+      <div key={lineIndex}>
         {line.split(keywordRegex).map((part, partIndex) => {
           if (redKeywords.includes(part)) {
             return <span key={partIndex} style={{ color: "#8b0000" }}>{part}</span>;
           } else if (highlightedKeywords.includes(part)) {
             return <span key={partIndex} style={{
-              color: "#87CEEB", // #4F9D9D also is a good color
+              color: "#87CEEB",
               textShadow: "0 0 2px rgba(230, 230, 0, 0.1)"
             }}>{part}</span>;
           } else {
             return part;
           }
         })}
-        {'\n'}
-      </span>
+        {lineIndex === code.split('\n').length - 1 && <Cursor show={showCursor} />}
+      </div>
     ));
+  };
 
-};
+  const Cursor = ({ show }) => (
+    <span style={{
+      borderLeft: show ? '2px solid #fff' : 'none',
+      marginLeft: '2px',
+      animation: 'blink 0.7s infinite',
+    }}>&nbsp;</span>
+  );
 
-return (
+  const displayedLines = displayedCode.split('\n').length;
+  const currentHeight = `${(displayedLines + (displayedCode.endsWith('\n') ? 0 : 1)) * lineHeight}em`;
 
-<pre
-  style={{
-    backgroundColor: "#1a1515",
-    padding: "1rem",
-    borderRadius: "8px",
-    height: preHeight,
-    overflow: "hidden",
-    whiteSpace: "pre-wrap",
-    wordWrap: "break-word",
-  }}
->
-  <code>{highlightCode(displayedCode)}</code>
-</pre>
-
-);
+  return (
+    <div style={{
+      position: 'relative',
+      height: maxHeight,
+      overflow: 'hidden',
+      borderRadius: '8px',
+    }}>
+      <pre
+        style={{
+          backgroundColor: "transparent",
+          padding: "1rem",
+          height: maxHeight,
+          maxHeight: maxHeight,
+          overflow: "hidden",
+          whiteSpace: "pre-wrap",
+          wordWrap: "break-word",
+          position: 'relative',
+          zIndex: 2,
+          margin: 0,
+        }}
+      >
+        <code>{highlightCode(displayedCode)}</code>
+      </pre>
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: currentHeight,
+          backgroundColor: "#1a1515",
+          transition: "height 0.1s linear",
+          zIndex: 1,
+          borderRadius: '8px',
+        }}
+      />
+    </div>
+  );
 }
 
 export function FAQBox({ title, children }) {
@@ -150,7 +198,7 @@ export function FAQBox({ title, children }) {
     animation: fadeIn 0.85s ease-in;
   }
   .fade-in-delayed {
-    animation: fadeIn 1.1s ease-in 1s;
+    animation: fadeIn 0.85s ease-in 1s;
     opacity: 0;
     animation-fill-mode: forwards;
   }
@@ -179,7 +227,7 @@ export function FAQBox({ title, children }) {
   />
 </div>
 
-<div style={{ marginBottom: "6rem" }}></div>
+<div style={{ marginBottom: "4rem" }}></div>
 
 <div className="fade-in-delayed" style={{ marginTop: "4rem" }}>
 <AnimatedCode code={
