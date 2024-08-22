@@ -68,7 +68,7 @@ export default {
     link: "https://discord.gg/s89P9gpEff",
   },
 
-  gitTimestamp: false,
+  gitTimestamp: () => null,
 
   navigation: {
     prev: true,
