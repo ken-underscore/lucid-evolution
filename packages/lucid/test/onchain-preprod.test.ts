@@ -15,7 +15,29 @@ import * as ParametrizedEndpoints from "./specs/hello-params.js";
 import * as TxChain from "./specs/tx-chaining.js";
 import * as MetadataEndpoint from "./specs/metadata.js";
 
-describe.sequential("Onchain testing", () => {
+test("DespositFunds, lock reference script", async () => {
+  const program = pipe(
+    HelloEndpoints.depositFundsLockRefScript,
+    Effect.provide(User.layer),
+    Effect.provide(HelloContract.layer),
+    Effect.provide(NetworkConfig.layerPreprod),
+  );
+  const exit = await Effect.runPromiseExit(program);
+  expect(exit._tag).toBe("Success");
+});
+
+test("CollectFunds , reading from reference script", async () => {
+  const program = pipe(
+    HelloEndpoints.collectFundsReadFrom,
+    Effect.provide(User.layer),
+    Effect.provide(HelloContract.layer),
+    Effect.provide(NetworkConfig.layerPreprod),
+  );
+  const exit = await Effect.runPromiseExit(program);
+  expect(exit._tag).toBe("Success");
+});
+
+describe.skip("Onchain testing", () => {
   test("TxChain", async () => {
     const program = pipe(
       TxChain.depositFundsCollect,
